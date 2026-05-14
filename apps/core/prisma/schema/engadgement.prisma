@@ -69,6 +69,7 @@ model Comment {
   replies          Comment[]         @relation("CommentReplies")
   likes            Like[]
   notifications    Notification[]
+  reportedSubjects ReportedSubject[]
 
   // Moderation fields
   hiddenAt     DateTime? @map("hidden_at") // Marks the comment as hidden; Result of a moderation action.

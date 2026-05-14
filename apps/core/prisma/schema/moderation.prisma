@@ -1,0 +1,150 @@
+enum ReportType {
+  flagAsSensitive
+  spam
+  nudity
+  minorSafety
+  bullyingAndHarassment
+  violentAndGraphicContent
+  illegalActivities
+  hateSpeech
+  falseInformation
+  suicideEatingDisorderSelfHarm
+  others
+}
+
+enum ReportedSubjectType {
+  USER
+  POST
+  COMMENT
+}
+
+enum ReportedSubjectModerationStatus {
+  PENDING_REVIEW
+  PENDING_APPEAL
+  ESCALATED
+  UNDER_REVIEW
+  RESOLVED
+}
+
+enum ModerationActionType {
+  ESCALATE
+  MARK_AS_SENSITIVE
+  MARK_AS_NOT_SENSITIVE
+  DISMISS
+  SUSPEND_REPORTED_SUBJECT
+  SUSPEND_USER
+  UNSUSPEND_REPORTED_SUBJECT
+  UNSUSPEND_USER
+  REOPEN
+}
+
+enum ModerationSuspensionLevel {
+  WARNING
+  TEMPORARY_1_DAY
+  TEMPORARY_2_DAYS
+  TEMPORARY_7_DAYS
+  PERMANENT
+  CUSTOM
+}
+
+model ReportedSubject {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  type             ReportedSubjectType
+  moderationStatus ReportedSubjectModerationStatus @map("moderation_status")
+
+  userId    String? @map("user_id") @db.Uuid
+  postId    String? @map("post_id") @db.Uuid
+  commentId String? @map("comment_id") @db.Uuid
+
+  moderationStatusChangedAt DateTime? @map("moderation_status_changed_at")
+
+  activeModerationId String? @unique @map("active_moderation_id") @db.Uuid
+  activeModeration   ReportedSubjectModeration? @relation("ActiveModeration", fields: [activeModerationId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  latestModerationActionId String? @unique @map("latest_moderation_action_id") @db.Uuid
+  latestModerationAction   ModerationAction? @relation("LatestModerationAction", fields: [latestModerationActionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  reportsCount Int @default(0) @map("reports_count")
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  comment Comment? @relation(fields: [commentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  moderations ReportedSubjectModeration[] @relation("SubjectModerations")
+  reports     Report[]
+  actions     ModerationAction[]            @relation("SubjectActions")
+
+  @@map("reported_subject")
+}
+
+model ReportedSubjectModeration {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  reportedSubjectId String @map("reported_subject_id") @db.Uuid
+  moderatorId       String @map("moderator_id") @db.Uuid
+
+  reportedSubject ReportedSubject @relation("SubjectModerations", fields: [reportedSubjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  moderator       Admin           @relation(fields: [moderatorId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  activeForSubject ReportedSubject? @relation("ActiveModeration")
+
+  moderationActions ModerationAction[]
+
+  @@unique([reportedSubjectId, moderatorId])
+  @@map("reported_subject_moderation")
+}
+
+model ModerationAction {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  type    ModerationActionType
+  reason  String?
+  isEdit  Boolean              @default(false) @map("is_edit")
+  notes   String?
+
+  reportedSubjectId String @map("reported_subject_id") @db.Uuid
+  moderationId      String @map("moderation_id") @db.Uuid
+
+  violationCategory    String? @map("violation_category")
+  violationSubcategory String? @map("violation_subcategory")
+  suspensionLevel      ModerationSuspensionLevel? @map("suspension_level")
+
+  suspensionStartsAt DateTime? @map("suspension_starts_at")
+  suspensionEndsAt   DateTime? @map("suspension_ends_at")
+
+  reportedSubject ReportedSubject @relation("SubjectActions", fields: [reportedSubjectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  moderation      ReportedSubjectModeration @relation(fields: [moderationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  subjectAsLatest ReportedSubject? @relation("LatestModerationAction")
+
+  @@map("moderation_action")
+}
+
+model Report {
+  id        String   @id @default(uuid()) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  type            ReportType
+  message         String?
+  hasBeenReviewed Boolean @default(false) @map("has_been_reviewed")
+
+  reportedSubjectId String @map("reported_subject_id") @db.Uuid
+  reportedSubject   ReportedSubject @relation(fields: [reportedSubjectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  userId String? @map("user_id") @db.Uuid
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  adminId String? @map("admin_id") @db.Uuid
+  admin   Admin?  @relation(fields: [adminId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([reportedSubjectId])
+  @@map("reports")
+}
