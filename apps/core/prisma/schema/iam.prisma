@@ -68,6 +68,8 @@ model User {
   postSearches              PostSearch[]
   postRatings               PostRating[]
   userAwardedTokens         UserAwardedTokens[]
+  reports                   Report[]
+  reportedAsSubject         ReportedSubject[]
 
   @@index([suspendedAt])
   @@map("users")
@@ -126,6 +128,8 @@ model Admin {
   lastSeenAt                 DateTime?                   @map("last_seen_at")
   devices                    Device[]
   sessions                   Session[]
+  reports                    Report[]
+  reportedSubjectModerations ReportedSubjectModeration[]
 
   @@map("admins")
 }

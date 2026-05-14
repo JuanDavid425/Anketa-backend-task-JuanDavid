@@ -148,6 +148,7 @@ model Post {
   notifications    Notification[]
   aiSummary        AIPostSummary?
   postRatings      PostRating[]
+  reportedSubjects ReportedSubject[]
 
   @@index([hiddenAt])
   @@index([createdByUserId, type])
